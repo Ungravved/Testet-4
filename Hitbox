@@ -1,1 +1,144 @@
 
+
+--// Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+
+local LocalPlayer = Players.LocalPlayer
+
+--// Settings
+getgenv().Hitbox = {
+Enabled = false,
+Size = 15,
+Transparency = 0.6,
+Color = BrickColor.new("Really red"),
+Material = Enum.Material.Neon,
+TeamCheck = false,
+Whitelist = {},
+}
+
+--// Utility functions
+local function isEnemy(player)
+if not getgenv().Hitbox.TeamCheck then return true end
+if not player.Team or not LocalPlayer.Team then return true end
+return player.Team ~= LocalPlayer.Team
+end
+
+local function isWhitelisted(player)
+for _, name in ipairs(getgenv().Hitbox.Whitelist) do
+if string.lower(name) == string.lower(player.Name) then
+return true
+end
+end
+return false
+end
+
+local function applyHitbox(player)
+local char = player.Character
+if not char then return end
+
+local hrp = char:FindFirstChild("HumanoidRootPart")
+if not hrp then return end
+
+pcall(function()
+hrp.Size = Vector3.new(
+getgenv().Hitbox.Size,
+getgenv().Hitbox.Size,
+getgenv().Hitbox.Size
+)
+hrp.Transparency = getgenv().Hitbox.Transparency
+hrp.BrickColor = getgenv().Hitbox.Color
+hrp.Material = getgenv().Hitbox.Material
+hrp.CanCollide = false
+end)
+
+end
+
+local function resetHitbox(player)
+local char = player.Character
+if not char then return end
+local hrp = char:FindFirstChild("HumanoidRootPart")
+if not hrp then return end
+
+pcall(function()
+hrp.Size = Vector3.new(2, 2, 1)
+hrp.Transparency = 1
+hrp.Material = Enum.Material.Plastic
+hrp.CanCollide = false
+end)
+
+end
+
+--// Main logic loop
+RunService.Heartbeat:Connect(function()
+for _, player in ipairs(Players:GetPlayers()) do
+if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+if getgenv().Hitbox.Enabled and isEnemy(player) and not isWhitelisted(player) then
+applyHitbox(player)
+else
+resetHitbox(player)
+end
+end
+end
+end)
+
+--// Simple GUI
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "HitboxControl"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 180, 0, 100)
+frame.Position = UDim2.new(0, 20, 0.5, -50)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 25)
+title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.Text = "Hitbox Expander"
+title.TextSize = 16
+
+local toggle = Instance.new("TextButton", frame)
+toggle.Size = UDim2.new(0.9, 0, 0, 25)
+toggle.Position = UDim2.new(0.05, 0, 0, 35)
+toggle.Text = "Hitbox: OFF"
+toggle.TextColor3 = Color3.new(1, 1, 1)
+toggle.Font = Enum.Font.Gotham
+toggle.TextSize = 14
+toggle.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+toggle.MouseButton1Click:Connect(function()
+getgenv().Hitbox.Enabled = not getgenv().Hitbox.Enabled
+toggle.Text = "Hitbox: " .. (getgenv().Hitbox.Enabled and "ON" or "OFF")
+toggle.BackgroundColor3 = getgenv().Hitbox.Enabled and Color3.fromRGB(80, 200, 80) or Color3.fromRGB(70, 70, 70)
+end)
+
+local sizeBox = Instance.new("TextBox", frame)
+sizeBox.Size = UDim2.new(0.9, 0, 0, 25)
+sizeBox.Position = UDim2.new(0.05, 0, 0, 65)
+sizeBox.PlaceholderText = "Hitbox Size (" .. getgenv().Hitbox.Size .. ")"
+sizeBox.Text = ""
+sizeBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+sizeBox.TextColor3 = Color3.new(1, 1, 1)
+sizeBox.Font = Enum.Font.Gotham
+sizeBox.TextSize = 14
+sizeBox.FocusLost:Connect(function(enter)
+if not enter then return end
+local val = tonumber(sizeBox.Text)
+if val and val > 0 then
+getgenv().Hitbox.Size = val
+sizeBox.PlaceholderText = "Hitbox Size (" .. val .. ")"
+end
+end)
+
+--// Notification
+StarterGui:SetCore("SendNotification", {
+Title = "Hitbox Expander Ready",
+Text = "True hitbox size modification enabled.",
+Duration = 8,
+})
+
